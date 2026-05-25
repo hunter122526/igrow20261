@@ -6,6 +6,9 @@ import './globals.css';
 export const metadata: Metadata = {
   title: 'iGrow Society | Future of Trading Education',
   description: 'Master the markets with futuristic fintech training at iGrow Society.',
+  icons: {
+    icon: '/favicon.png.png',
+  },
 };
 
 export default function RootLayout({

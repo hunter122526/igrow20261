@@ -135,3 +135,46 @@ export async function POST(
     )
   }
 }
+
+export async function PATCH(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
+  const params = await context.params
+  try {
+    const auth = requireAdminAuth(request)
+    if (!auth) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const body = await request.json()
+    const { action, password } = body
+
+    if (action !== 'resetPassword' || !password) {
+      return NextResponse.json(
+        { error: 'Invalid request' },
+        { status: 400 }
+      )
+    }
+
+    const registration = registrations.find((r) => r.id === params.id)
+    if (!registration) {
+      return NextResponse.json(
+        { error: 'Registration not found' },
+        { status: 404 }
+      )
+    }
+
+    registration.password = password
+
+    return NextResponse.json({
+      message: 'Password reset successfully',
+      registration,
+    })
+  } catch (error) {
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
+  }
+}

@@ -10,14 +10,7 @@ interface User {
 }
 
 // In-memory user storage (in production, use a database)
-let users: User[] = [
-  {
-    id: '1',
-    email: 'user@example.com',
-    password: 'password123',
-    name: 'Demo User'
-  }
-]
+let users: User[] = []
 
 export async function POST(request: NextRequest) {
   try {

@@ -13,13 +13,12 @@ export function Footer() {
       <div className="container mx-auto px-6">
         <div className="grid grid-cols-1 gap-12 md:grid-cols-2 lg:grid-cols-4 mb-20">
           <div className="space-y-6">
-            <Link href="/" className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-                <Rocket className="text-background h-5 w-5" />
-              </div>
-              <span className="font-headline text-xl font-bold tracking-tight text-white">
-                iGrow Society
-              </span>
+            <Link href="/" className="flex items-center gap-3">
+              <img
+                src="/igrow_logo%20footer.png"
+                alt="iGrow footer logo"
+                className="h-10 w-auto object-contain"
+              />
             </Link>
             <p className="text-foreground/50 leading-relaxed">
               Empowering the next generation of digital asset traders through science, reasoning, and institutional knowledge.

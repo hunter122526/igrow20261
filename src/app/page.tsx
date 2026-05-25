@@ -50,9 +50,15 @@ export default function Home() {
     return (
       <main className="fixed inset-0 z-50 flex items-center justify-center bg-[#020617] text-white">
         <div className="flex flex-col items-center gap-6 px-6 py-8 rounded-[2rem] bg-slate-950/95 border border-white/10 shadow-[0_30px_80px_rgba(0,0,0,0.35)]">
-          <div className="relative w-28 h-28" style={{ perspective: '900px' }}>
+              <div className="relative w-28 h-28" style={{ perspective: '900px' }}>
             <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-cyan-400/10 via-sky-500/10 to-transparent blur-2xl" />
-            <div className="relative w-full h-full transform-gpu [transform-style:preserve-3d] animate-[spin_2s_linear_infinite]">
+            <div className="relative w-full h-full flex items-center justify-center">
+              <img
+                src="/IGROW%20LOGO.png"
+                alt="iGrow loading logo"
+                className="relative z-10 w-20 h-20 rounded-2xl object-contain shadow-[0_0_30px_rgba(56,189,248,0.25)]"
+                style={{ transform: 'rotateX(18deg) rotateY(-10deg)' }}
+              />
               <div className="absolute inset-0 rounded-3xl border border-cyan-400/20 bg-[#06111d]/90 shadow-[0_0_50px_rgba(56,189,248,0.25)]" />
               <div className="absolute inset-0 rounded-3xl border border-sky-300/10 rotate-45" />
               <div className="absolute inset-0 rounded-3xl border border-cyan-400/10 rotate-90" />

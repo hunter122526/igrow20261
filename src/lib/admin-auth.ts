@@ -1,8 +1,8 @@
 import crypto from 'crypto'
 import { NextRequest } from 'next/server'
 
-const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin'
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123'
+const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'Iadmin2026'
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin@igrow2026'
 const AUTH_SECRET = process.env.ADMIN_AUTH_SECRET || 'change-this-secret'
 const COOKIE_NAME = 'admin_auth'
 export const AUTH_MAX_AGE = 60 * 60 * 4 // 4 hours

@@ -41,7 +41,7 @@ export function Navbar() {
   return (
     <nav 
       className={cn(
-        "fixed top-0 left-0 right-0 z-50 transition-all duration-300 px-6 py-4",
+        "fixed top-0 left-0 right-0 z-50 transition-all duration-300 px-3 py-1.5 md:px-5 md:py-2",
         isScrolled ? "bg-background/80 backdrop-blur-md border-b border-white/10" : "bg-transparent"
       )}
     >
@@ -49,7 +49,11 @@ export function Navbar() {
         <Link href="/" className="flex items-center gap-2 group">
           <div className="flex items-center">
             {logoUrl ? (
-              <img src={logoUrl} alt="Logo" className="h-16 md:h-24 w-auto object-contain" />
+              <img
+                src={logoUrl}
+                alt="Logo"
+                className="h-16 md:h-20 w-auto max-w-[180px] object-contain"
+              />
             ) : (
               <Rocket className="text-background h-10 w-10" />
             )}

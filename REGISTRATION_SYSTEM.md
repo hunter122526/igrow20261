@@ -246,7 +246,7 @@ Response (if approved):
 
 ### Test Scenario 1: Successful Registration & Approval
 1. Register a user at `/login` with any plan
-2. Go to `/admin` (login: admin/admin123)
+2. Go to `/admin` with the administrator credentials configured via environment variables.
 3. Find the registration and click "Approve"
 4. User should now be able to login
 5. Dashboard should show plan info

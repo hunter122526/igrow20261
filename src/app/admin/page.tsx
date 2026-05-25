@@ -42,6 +42,9 @@ export default function AdminPage() {
   const [newUserPhone, setNewUserPhone] = useState('')
   const [newUserProgram, setNewUserProgram] = useState('')
   const [creatingUser, setCreatingUser] = useState(false)
+  const [passwordResetUserId, setPasswordResetUserId] = useState('')
+  const [passwordResetValue, setPasswordResetValue] = useState('')
+  const [passwordResetLoading, setPasswordResetLoading] = useState(false)
   const [selectedTreeUserId, setSelectedTreeUserId] = useState('')
   const [treeData, setTreeData] = useState<any | null>(null)
   const [treeLoading, setTreeLoading] = useState(false)
@@ -357,6 +360,35 @@ export default function AdminPage() {
     }
   }
 
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!passwordResetUserId || !passwordResetValue) {
+      setError('Select a user and enter a password')
+      return
+    }
+    setPasswordResetLoading(true)
+    try {
+      const res = await fetch(`/api/registrations/${passwordResetUserId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'resetPassword', password: passwordResetValue })
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setError(data?.error || 'Failed to reset password')
+      } else {
+        setError('')
+        setPasswordResetUserId('')
+        setPasswordResetValue('')
+        await fetchRegistrations()
+      }
+    } catch (err) {
+      setError('Error resetting password')
+    } finally {
+      setPasswordResetLoading(false)
+    }
+  }
+
   const toggleReveal = (id: string) => {
     setRevealedPasswords(prev => ({ ...prev, [id]: !prev[id] }))
   }
@@ -586,14 +618,6 @@ export default function AdminPage() {
               )}
             </Button>
 
-            {/* Demo Info */}
-            <div className="pt-4 border-t border-white/10">
-              <p className="text-xs text-foreground/50 uppercase tracking-[0.1em] font-bold mb-3">Demo Credentials:</p>
-              <div className="space-y-2 text-xs text-foreground/60 bg-black/30 rounded-lg p-4 border border-white/5">
-                <div><span className="text-primary font-semibold">Username:</span> admin</div>
-                <div><span className="text-primary font-semibold">Password:</span> admin123</div>
-              </div>
-            </div>
           </form>
 
           {/* Footer */}
@@ -1172,6 +1196,31 @@ export default function AdminPage() {
               </div>
             </form>
 
+            {passwordResetUserId && (
+              <form onSubmit={handleResetPassword} className="mb-6 rounded-2xl border border-white/10 bg-black/40 p-5">
+                <div className="flex flex-col md:flex-row gap-3 items-end">
+                  <div className="flex-1">
+                    <p className="text-xs uppercase tracking-[0.18em] text-foreground/60 font-bold mb-1">Reset Password for</p>
+                    <p className="text-white font-semibold">{registrations.find((user) => user.id === passwordResetUserId)?.name || 'Selected user'}</p>
+                  </div>
+                  <div className="flex-1">
+                    <Label className="text-xs uppercase tracking-[0.15em] font-bold text-foreground/70">New Password</Label>
+                    <Input
+                      type="password"
+                      placeholder="Enter new password"
+                      value={passwordResetValue}
+                      onChange={(e) => setPasswordResetValue(e.target.value)}
+                      className="mt-2"
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button type="submit" className="bg-primary" disabled={passwordResetLoading}>{passwordResetLoading ? 'Resetting...' : 'Reset Password'}</Button>
+                    <Button type="button" onClick={() => { setPasswordResetUserId(''); setPasswordResetValue('') }} className="bg-white/5">Cancel</Button>
+                  </div>
+                </div>
+              </form>
+            )}
+
             {selectedRechargeUserId && (
               <div className="mb-6 rounded-2xl border border-white/10 bg-black/40 p-5">
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
@@ -1248,6 +1297,13 @@ export default function AdminPage() {
                           className="px-3 py-1 rounded-lg bg-primary/20 hover:bg-primary/30 text-primary text-xs font-semibold"
                         >
                           Credit Wallet
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPasswordResetUserId(u.id)}
+                          className="px-3 py-1 rounded-lg bg-violet-600/20 hover:bg-violet-600/30 text-violet-300 text-xs font-semibold"
+                        >
+                          Reset Password
                         </button>
                         <button
                           type="button"
