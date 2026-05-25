@@ -11,7 +11,7 @@ export function Footer() {
   return (
     <footer className="bg-card/50 border-t border-white/10 pt-20 pb-10">
       <div className="container mx-auto px-6">
-        <div className="grid grid-cols-1 gap-12 md:grid-cols-2 lg:grid-cols-4 mb-20">
+        <div className="grid grid-cols-1 gap-12 md:grid-cols-3 mb-20">
           <div className="space-y-6">
             <Link href="/" className="flex items-center gap-3">
               <img
@@ -20,7 +20,7 @@ export function Footer() {
                 className="h-10 w-auto object-contain"
               />
             </Link>
-            <p className="text-foreground/50 leading-relaxed">
+            <p className="text-foreground/50 leading-relaxed max-w-md">
               Empowering the next generation of digital asset traders through science, reasoning, and institutional knowledge.
             </p>
             <div className="flex items-center gap-4">
@@ -36,23 +36,19 @@ export function Footer() {
             </div>
           </div>
 
-          <div>
-            <h4 className="text-white font-bold mb-8 uppercase tracking-widest text-sm">Programs</h4>
+          <div className="hidden md:block">
+            <h4 className="text-white font-bold mb-8 uppercase tracking-widest text-sm">Explore</h4>
             <ul className="space-y-4">
-              {['Basic Tier', 'Advanced Tier', 'Advanced 2.0', 'Combo Program', 'Internship'].map(item => (
-                <li key={item}>
-                  <Link href="#" className="text-foreground/50 hover:text-primary transition-colors">{item}</Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div>
-            <h4 className="text-white font-bold mb-8 uppercase tracking-widest text-sm">Company</h4>
-            <ul className="space-y-4">
-              {['About Us', 'Careers', 'Brand Assets', 'Legal & Privacy', 'Terms'].map(item => (
-                <li key={item}>
-                  <Link href="#" className="text-foreground/50 hover:text-primary transition-colors">{item}</Link>
+              {[
+                { label: 'Programs', href: '#programs' },
+                { label: 'Benefits', href: '#benefits' },
+                { label: 'AI Mentor', href: '#ai-mentor' },
+                { label: 'Markets', href: '#markets' }
+              ].map(item => (
+                <li key={item.label}>
+                  <Link href={item.href} className="text-foreground/50 hover:text-primary transition-colors">
+                    {item.label}
+                  </Link>
                 </li>
               ))}
             </ul>
@@ -61,7 +57,7 @@ export function Footer() {
           <div className="space-y-6">
             <h4 className="text-white font-bold uppercase tracking-widest text-sm">Newsletter</h4>
             <p className="text-foreground/50 text-sm">Get the weekly alpha report delivered to your inbox.</p>
-            <div className="relative group">
+            <div className="relative group max-w-sm">
               <Input 
                 placeholder="Email Address" 
                 className="bg-white/5 border-white/10 h-14 rounded-xl pr-14 focus:ring-primary focus:border-primary"

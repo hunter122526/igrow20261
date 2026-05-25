@@ -151,69 +151,15 @@ function MockDashboard({ settings }: { settings?: any }) {
   )
 }
 
-function MobileMockup({ scrollProgress }: { scrollProgress: number }) {
-  const [isMobile, setIsMobile] = useState(false)
-
-  useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 768)
-    checkMobile()
-    window.addEventListener('resize', checkMobile)
-    return () => window.removeEventListener('resize', checkMobile)
-  }, [])
-
-  const rotateY = isMobile ? -10 + scrollProgress * 10 : -12 + scrollProgress * 12
-  const rotateX = 12
-  const opacity = 0.8 + scrollProgress * 0.2
-
+function MobileMockup() {
   return (
-    <div className="relative w-full max-w-[360px] mx-auto flex justify-center items-center perspective-[2500px]">
-      <div
-        className="relative w-[240px] sm:w-[280px] h-[520px] sm:h-[580px] rounded-[3rem] bg-[#0a0a0a] border-[6px] border-[#1a1a1a] shadow-[0_30px_80px_rgba(0,0,0,0.65)] overflow-hidden"
-        style={{ transform: `rotateY(${rotateY}deg) rotateX(${rotateX}deg)`, opacity }}
-      >
-        <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-white/10 pointer-events-none" />
-        <div className="relative h-full p-5 flex flex-col gap-4">
-          <div className="flex items-center justify-between text-[8px] text-foreground/40 uppercase tracking-[0.3em] font-bold">
-            <span>9:41</span>
-            <span className="flex items-center gap-1">
-              <span className="w-3 h-1.5 rounded-full bg-foreground/40" />
-              <span className="w-3 h-1.5 rounded-full bg-foreground/40" />
-              <span className="w-3 h-1.5 rounded-full bg-foreground/40" />
-            </span>
-          </div>
-
-          <div className="rounded-[2rem] border border-white/10 bg-[#06080a] p-4 flex flex-col gap-4">
-            <div className="flex items-center justify-between text-[9px] text-foreground/40 uppercase tracking-[0.2em]">
-              <span className="text-white font-bold">Portfolio</span>
-              <span className="text-primary">Live</span>
-            </div>
-            <div className="text-3xl font-bold text-white">$106,924</div>
-            <div className="text-[10px] text-foreground/40">+2.3% over 24h</div>
-            <div className="h-24 rounded-3xl bg-gradient-to-b from-primary/30 to-transparent" />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            {[
-              { label: 'Buy', value: '$23.4k' },
-              { label: 'Sell', value: '$22.9k' }
-            ].map((item) => (
-              <div key={item.label} className="rounded-3xl bg-white/5 border border-white/10 p-3 text-[10px]">
-                <div className="font-bold text-white">{item.label}</div>
-                <div className="text-foreground/50 mt-1">{item.value}</div>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-auto grid gap-3 text-[10px]">
-            <div className="rounded-3xl bg-white/5 border border-white/10 p-3">
-              <div className="text-foreground/40 uppercase tracking-[0.2em] mb-2">Market Signal</div>
-              <div className="text-sm font-bold text-white">Bullish momentum</div>
-            </div>
-            <div className="rounded-3xl bg-primary/15 border border-primary/20 p-3 text-primary font-bold text-center uppercase tracking-[0.2em]">
-              Execute Strategy
-            </div>
-          </div>
-        </div>
+    <div className="relative w-full max-w-[360px] mx-auto flex justify-center items-center">
+      <div className="relative w-full overflow-hidden rounded-[3rem] bg-transparent">
+        <img
+          src="/mobile%20hero.png"
+          alt="Mobile hero preview"
+          className="w-full h-auto object-cover block rounded-[2.5rem]"
+        />
       </div>
     </div>
   )
@@ -327,7 +273,7 @@ export function Hero({ settings }: { settings?: any }) {
 
         {/* Mobile-friendly mockup */}
         <div className="xl:hidden w-full mt-12">
-          <MobileMockup scrollProgress={scrollProgress} />
+          <MobileMockup />
         </div>
 
         {/* Stats Section */}

@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { name, email, phone, program } = body
+    const { name, email, phone, program, password } = body
 
     if (!name || !email) {
       return NextResponse.json({ error: 'Name and email required' }, { status: 400 })
@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Email already registered' }, { status: 400 })
     }
 
-    const tempPassword = generatePassword()
+    const assignedPassword = password && password.trim().length > 0 ? password : generatePassword()
 
     const registration = {
       id: Date.now().toString(),
@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
       planAmount: 0,
       referralName: '',
       referralCode: '',
-      password: tempPassword,
+      password: assignedPassword,
       date: new Date().toISOString().split('T')[0],
       status: 'approved',
       approvedAt: new Date().toISOString(),
@@ -49,12 +49,20 @@ export async function POST(request: NextRequest) {
       parentId: '',
       side: '',
       leftChildId: '',
-      rightChildId: ''
+      rightChildId: '',
+      profileImage: '',
+      idCardIssued: false,
+      idCardIssuedAt: ''
     }
 
     registrations.push(registration)
 
-    return NextResponse.json({ message: 'User created', id: registration.id, tempPassword, registration }, { status: 201 })
+    return NextResponse.json({
+      message: 'User created',
+      id: registration.id,
+      password: assignedPassword,
+      registration
+    }, { status: 201 })
   } catch (error) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }

@@ -3,10 +3,11 @@
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
+import { useIsMobile } from '@/hooks/use-mobile'
 import {
   LogOut, User, Loader, AlertCircle, CheckCircle, Users, TrendingUp,
   Wallet, Gift, Award, FileText, Copy, Check, Home, Plus, ListChecks,
-  DollarSign, CreditCard, Bell
+  DollarSign, CreditCard, Bell, Camera
 } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import DownlineTree from '@/components/DownlineTree'
@@ -106,6 +107,9 @@ export default function UserDashboard() {
   const [topupAmount, setTopupAmount] = useState('')
   const [topupCurrency, setTopupCurrency] = useState<string>(CRYPTO_CURRENCIES[0])
   const [topupHistory, setTopupHistory] = useState<any[]>([])
+  const [profileUploadError, setProfileUploadError] = useState('')
+  const [profileUploading, setProfileUploading] = useState(false)
+  const isMobile = useIsMobile()
 
   useEffect(() => {
     const load = async () => {
@@ -238,6 +242,55 @@ export default function UserDashboard() {
     }
   }
 
+  const handleProfileImageChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) {
+      return
+    }
+
+    if (!file.type.startsWith('image/')) {
+      setProfileUploadError('Please select a valid image file.')
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onload = async () => {
+      const imageData = reader.result as string
+      if (!userToken) {
+        setProfileUploadError('Unauthorized request')
+        return
+      }
+
+      setProfileUploading(true)
+      setProfileUploadError('')
+
+      try {
+        const response = await fetch('/api/user/me', {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${userToken}`
+          },
+          body: JSON.stringify({ profileImage: imageData })
+        })
+
+        const data = await response.json()
+        if (!response.ok) {
+          setProfileUploadError(data.error || 'Failed to upload image')
+          return
+        }
+
+        setUser(data.user)
+      } catch (error) {
+        setProfileUploadError('Failed to upload image')
+      } finally {
+        setProfileUploading(false)
+      }
+    }
+
+    reader.readAsDataURL(file)
+  }
+
   const handleTopupSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setTopupError('')
@@ -301,21 +354,13 @@ export default function UserDashboard() {
   const totalBalance = walletBalance + commissionBalance
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#06080a] via-[#0a0c0e] to-[#0f1117] text-white">
+    <div className="min-h-screen bg-gradient-to-br from-[#06080a] via-[#0a0c0e] to-[#0f1117] text-white pb-24 md:pb-0">
       <div className="flex">
         {/* Modern Sidebar */}
         <div className="hidden md:flex flex-col w-64 bg-gradient-to-b from-[#0f1318] to-[#0a0d11] border-r border-white/10 p-6 sticky top-0 h-screen overflow-y-auto">
           {/* Logo */}
           <div className="mb-8">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center">
-                <span className="text-white font-bold text-lg">IG</span>
-              </div>
-              <div>
-                <p className="font-bold text-white text-sm">iGROW</p>
-                <p className="text-primary text-xs">Crypto Analysis</p>
-              </div>
-            </div>
+            <img src="/igrow_logo%20footer.png" alt="iGROW logo" className="w-full max-w-[180px] object-contain" />
           </div>
 
           {/* User Info */}
@@ -365,9 +410,12 @@ export default function UserDashboard() {
           <div className="p-4 md:p-8 max-w-7xl mx-auto">
             {/* Top Header */}
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
-              <div>
-                <h1 className="text-3xl md:text-4xl font-bold text-white">Welcome back, {user?.name?.split(' ')[0]}!</h1>
-                <p className="text-foreground/60 mt-2">Manage your account and track your earnings</p>
+              <div className="flex items-center gap-4">
+                <img src="/igrow_logo%20footer.png" alt="iGROW logo" className="h-14 object-contain" />
+                <div>
+                  <h1 className="text-3xl md:text-4xl font-bold text-white">Welcome back, {user?.name?.split(' ')[0]}!</h1>
+                  <p className="text-foreground/60 mt-2">Manage your account and track your earnings</p>
+                </div>
               </div>
               <Button
                 onClick={handleLogout}
@@ -448,18 +496,37 @@ export default function UserDashboard() {
                       <User className="w-5 h-5 text-primary" />
                       Profile Information
                     </h2>
-                    <div className="space-y-5">
-                      <div className="pb-4 border-b border-white/10">
-                        <p className="text-xs uppercase tracking-widest text-foreground/60 font-bold mb-1">Full Name</p>
-                        <p className="text-white font-semibold">{user?.name}</p>
+                    <div className="grid grid-cols-1 md:grid-cols-[110px_1fr] gap-6 items-start">
+                      <div className="space-y-4">
+                        <div className="h-28 w-28 rounded-3xl overflow-hidden border border-white/10 bg-[#02050d] flex items-center justify-center">
+                          {user?.profileImage ? (
+                            <img src={user.profileImage} alt="Profile" className="h-full w-full object-cover" />
+                          ) : (
+                            <div className="flex flex-col items-center justify-center gap-2 text-foreground/50">
+                              <Camera className="h-6 w-6" />
+                              <span className="text-xs">No photo</span>
+                            </div>
+                          )}
+                        </div>
+                        <label className="inline-flex w-full cursor-pointer items-center justify-center rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-foreground/80 hover:bg-white/10 transition-colors">
+                          <input type="file" accept="image/*" onChange={handleProfileImageChange} className="sr-only" />
+                          {profileUploading ? 'Uploading...' : 'Upload Profile Image'}
+                        </label>
+                        {profileUploadError && <p className="text-sm text-red-400">{profileUploadError}</p>}
                       </div>
-                      <div className="pb-4 border-b border-white/10">
-                        <p className="text-xs uppercase tracking-widest text-foreground/60 font-bold mb-1">Email Address</p>
-                        <p className="text-white font-semibold text-sm">{user?.email}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs uppercase tracking-widest text-foreground/60 font-bold mb-1">User ID</p>
-                        <p className="text-primary font-mono font-bold">{user?.id}</p>
+                      <div className="space-y-5">
+                        <div className="pb-4 border-b border-white/10">
+                          <p className="text-xs uppercase tracking-widest text-foreground/60 font-bold mb-1">Full Name</p>
+                          <p className="text-white font-semibold">{user?.name}</p>
+                        </div>
+                        <div className="pb-4 border-b border-white/10">
+                          <p className="text-xs uppercase tracking-widest text-foreground/60 font-bold mb-1">Email Address</p>
+                          <p className="text-white font-semibold text-sm">{user?.email}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs uppercase tracking-widest text-foreground/60 font-bold mb-1">User ID</p>
+                          <p className="text-primary font-mono font-bold">{user?.id}</p>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -928,6 +995,26 @@ export default function UserDashboard() {
             <div className="pb-8"></div>
           </div>
         </div>
+      {isMobile && (
+        <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/10 bg-[#02040a]/95 backdrop-blur-xl py-2 md:hidden">
+          <div className="max-w-7xl mx-auto flex items-center justify-between gap-1 px-3">
+            {DASHBOARD_SECTIONS.map((section) => {
+              const Icon = section.icon
+              const key = section.label.toLowerCase()
+              return (
+                <button
+                  key={key}
+                  onClick={() => setActiveTab(key)}
+                  className={`flex-1 flex flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2 text-[10px] transition ${activeTab === key ? 'bg-white/10 text-white' : 'bg-white/5 text-foreground/70'}`}
+                >
+                  <Icon className="h-5 w-5" />
+                  <span>{section.label.split(' ')[0]}</span>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
       </div>
     </div>
   )

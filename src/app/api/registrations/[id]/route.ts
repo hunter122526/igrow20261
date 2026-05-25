@@ -150,18 +150,28 @@ export async function PATCH(
     const body = await request.json()
     const { action, password } = body
 
-    if (action !== 'resetPassword' || !password) {
-      return NextResponse.json(
-        { error: 'Invalid request' },
-        { status: 400 }
-      )
-    }
-
     const registration = registrations.find((r) => r.id === params.id)
     if (!registration) {
       return NextResponse.json(
         { error: 'Registration not found' },
         { status: 404 }
+      )
+    }
+
+    if (action === 'issueIdCard') {
+      registration.idCardIssued = true
+      registration.idCardIssuedAt = new Date().toISOString()
+
+      return NextResponse.json({
+        message: 'ID Card issued successfully',
+        registration,
+      })
+    }
+
+    if (action !== 'resetPassword' || !password) {
+      return NextResponse.json(
+        { error: 'Invalid request' },
+        { status: 400 }
       )
     }
 

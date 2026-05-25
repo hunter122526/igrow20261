@@ -41,6 +41,8 @@ export default function AdminPage() {
   const [newUserEmail, setNewUserEmail] = useState('')
   const [newUserPhone, setNewUserPhone] = useState('')
   const [newUserProgram, setNewUserProgram] = useState('')
+  const [newUserPassword, setNewUserPassword] = useState('')
+  const [createdUserPassword, setCreatedUserPassword] = useState('')
   const [creatingUser, setCreatingUser] = useState(false)
   const [passwordResetUserId, setPasswordResetUserId] = useState('')
   const [passwordResetValue, setPasswordResetValue] = useState('')
@@ -137,6 +139,27 @@ export default function AdminPage() {
       }
     } catch (err) {
       setError('Error rejecting registration')
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  const handleIssueIdCard = async (id: string) => {
+    setActionLoading(id)
+    try {
+      const response = await fetch(`/api/registrations/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'issueIdCard' })
+      })
+      if (response.ok) {
+        setError('')
+        await fetchRegistrations()
+      } else {
+        setError('Failed to issue ID card')
+      }
+    } catch (err) {
+      setError('Error issuing ID card')
     } finally {
       setActionLoading(null)
     }
@@ -337,7 +360,13 @@ export default function AdminPage() {
       const res = await fetch('/api/admin/create-user', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: newUserName, email: newUserEmail, phone: newUserPhone, program: newUserProgram })
+        body: JSON.stringify({
+          name: newUserName,
+          email: newUserEmail,
+          phone: newUserPhone,
+          program: newUserProgram,
+          password: newUserPassword
+        })
       })
       const data = await res.json()
       if (!res.ok) {
@@ -348,10 +377,12 @@ export default function AdminPage() {
           setRegistrations(prev => [data.registration, ...prev])
           setRevealedPasswords(prev => ({ ...prev, [data.registration.id]: true }))
         }
+        setCreatedUserPassword(data?.password || '')
         setNewUserName('')
         setNewUserEmail('')
         setNewUserPhone('')
         setNewUserProgram('')
+        setNewUserPassword('')
       }
     } catch (err) {
       setError('Error creating user')
@@ -634,13 +665,11 @@ export default function AdminPage() {
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 mb-8">
           <div>
             <div className="flex items-center gap-3 mb-2">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center">
-                <Shield className="h-6 w-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-3xl md:text-4xl font-bold text-white">Admin Dashboard</h1>
-                <p className="text-foreground/60 text-sm">Manage registrations and monitor platform activity</p>
-              </div>
+              <img src="/igrow_logo%20footer.png" alt="iGROW logo" className="h-20 object-contain" />
+            </div>
+            <div>
+              <h1 className="text-3xl md:text-4xl font-bold text-white">Admin Dashboard</h1>
+              <p className="text-foreground/60 text-sm">Manage registrations and monitor platform activity</p>
             </div>
           </div>
           <Button
@@ -757,6 +786,7 @@ export default function AdminPage() {
                     <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-foreground/70">Program</th>
                     <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-foreground/70">Amount</th>
                     <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-foreground/70">Status</th>
+                    <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-foreground/70">ID Card</th>
                     <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-foreground/70">Actions</th>
                   </tr>
                 </thead>
@@ -820,6 +850,25 @@ export default function AdminPage() {
                               )}
                               Reject
                             </button>
+                          </div>
+                        ) : reg.status === 'approved' ? (
+                          <div className="flex flex-col gap-2">
+                            {reg.idCardIssued ? (
+                              <span className="px-3 py-1.5 bg-green-500/20 text-green-400 border border-green-500/30 rounded-full text-xs font-bold">ID Issued</span>
+                            ) : (
+                              <button
+                                onClick={() => handleIssueIdCard(reg.id)}
+                                disabled={actionLoading === reg.id}
+                                className="px-3 py-1.5 bg-primary/20 hover:bg-primary/30 text-primary border border-primary/30 rounded-lg text-xs font-medium transition-all flex items-center justify-center gap-1 disabled:opacity-50"
+                              >
+                                {actionLoading === reg.id ? (
+                                  <Loader className="h-3 w-3 animate-spin" />
+                                ) : (
+                                  <Shield className="h-3 w-3" />
+                                )}
+                                Issue ID Card
+                              </button>
+                            )}
                           </div>
                         ) : (
                           <span className="text-foreground/40 text-xs font-medium">No actions</span>
@@ -1186,15 +1235,22 @@ export default function AdminPage() {
           <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
             <h2 className="text-xl font-bold mb-4">Manage Users</h2>
 
-            <form onSubmit={handleCreateUser} className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-6">
+            <form onSubmit={handleCreateUser} className="grid grid-cols-1 md:grid-cols-5 gap-3 mb-6">
               <Input placeholder="Name" value={newUserName} onChange={(e) => setNewUserName(e.target.value)} />
               <Input placeholder="Email" value={newUserEmail} onChange={(e) => setNewUserEmail(e.target.value)} />
               <Input placeholder="Phone" value={newUserPhone} onChange={(e) => setNewUserPhone(e.target.value)} />
+              <Input placeholder="Password" type="password" value={newUserPassword} onChange={(e) => setNewUserPassword(e.target.value)} />
               <div className="flex gap-2">
                 <Input placeholder="Program" value={newUserProgram} onChange={(e) => setNewUserProgram(e.target.value)} />
                 <Button type="submit" className="bg-primary">Create</Button>
               </div>
             </form>
+            {createdUserPassword && (
+              <div className="rounded-2xl border border-green-500/20 bg-green-500/10 p-4 text-green-300 text-sm">
+                <p className="font-semibold">Created user password:</p>
+                <p className="font-mono mt-1">{createdUserPassword}</p>
+              </div>
+            )}
 
             {passwordResetUserId && (
               <form onSubmit={handleResetPassword} className="mb-6 rounded-2xl border border-white/10 bg-black/40 p-5">
@@ -1401,8 +1457,8 @@ export default function AdminPage() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-white/10">
-                        {flattenTree(treeData.root || treeData).map((n) => (
-                          <tr key={n.id} className="group hover:bg-white/5">
+                        {flattenTree(treeData.downline || treeData.root || treeData).slice(1).map((n, index) => (
+                          <tr key={`${n.id}-${index}`} className="group hover:bg-white/5">
                             <td className="px-3 py-2">{n.name}</td>
                             <td className="px-3 py-2 text-xs font-mono">{n.email}</td>
                             <td className="px-3 py-2">{n.planAmount || '-'}</td>
