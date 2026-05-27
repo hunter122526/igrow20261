@@ -25,9 +25,21 @@ const REFERRAL_LEVELS = [
 
 const PAYMENT_METHODS = ['Bank Transfer', 'Crypto Wallet', 'UPI']
 const CRYPTO_CURRENCIES = ['USDT', 'BTC', 'ETH', 'BNB', 'SOL']
+const INR_TO_USD_RATE = 83.33
 
-function formatCurrency(value: number) {
-  return `₹${value.toLocaleString()}`
+function formatCurrency(value: number, currency?: string) {
+  const normalizedCurrency = (currency || 'INR').toUpperCase()
+  const formatted = value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })
+  if (normalizedCurrency === 'INR') {
+    return `₹${formatted}`
+  }
+  return `$${formatted}`
+}
+
+function formatInrWithUsd(value: number) {
+  const inrAmount = `₹${value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`
+  const usdAmount = `$${(value / INR_TO_USD_RATE).toFixed(2)}`
+  return `${inrAmount} / ${usdAmount}`
 }
 
 function flattenDownline(node: any | null): any[] {
@@ -41,19 +53,6 @@ function countDirectLegs(node: any | null) {
     left: node.left ? flattenDownline(node.left).length : 0,
     right: node.right ? flattenDownline(node.right).length : 0,
   }
-}
-
-function calculateDirectCommission(node: any | null) {
-  if (!node) return 0
-  const direct = [node.left, node.right].filter(Boolean) as any[]
-  return direct.reduce((sum, child) => sum + (child.planAmount || 0) * 0.05, 0)
-}
-
-function calculateTeamCommission(node: any | null) {
-  if (!node) return 0
-  return flattenDownline(node)
-    .slice(1)
-    .reduce((sum, child) => sum + (child.planAmount || 0) * 0.02, 0)
 }
 
 const DASHBOARD_SECTIONS = [
@@ -94,7 +93,9 @@ export default function UserDashboard() {
     pendingWithdraw: 0
   })
   const [walletBalance, setWalletBalance] = useState<number>(0)
+  const [walletCurrency, setWalletCurrency] = useState<string>('INR')
   const [commissionBalance, setCommissionBalance] = useState<number>(0)
+  const [commissionCurrency, setCommissionCurrency] = useState<string>('INR')
   const [directCommission, setDirectCommission] = useState<number>(0)
   const [teamCommission, setTeamCommission] = useState<number>(0)
   const [balanceRequests, setBalanceRequests] = useState<any[]>([])
@@ -142,18 +143,16 @@ export default function UserDashboard() {
     const directLegs = countDirectLegs(downlineData.downline)
     const totalMembers = Math.max(0, downlineData.stats.totalMembers - 1)
     const pendingWithdraw = balanceRequests.reduce((sum, request) => sum + (request.status === 'pending' ? request.amount : 0), 0)
-    const direct = calculateDirectCommission(downlineData.downline)
-    const team = calculateTeamCommission(downlineData.downline)
 
     setStats({
-      totalEarnings: direct + team,
+      totalEarnings: commissionBalance,
       directMembers: directLegs.left + directLegs.right,
       totalMembers,
       pendingWithdraw
     })
-    setDirectCommission(direct)
-    setTeamCommission(team)
-  }, [downlineData, balanceRequests])
+    setDirectCommission(0)
+    setTeamCommission(0)
+  }, [downlineData, balanceRequests, commissionBalance])
 
   const fetchUserProfile = async (token: string) => {
     try {
@@ -167,7 +166,9 @@ export default function UserDashboard() {
       const data = await response.json()
       setUser(data.user)
       setWalletBalance(data.user.walletBalance || 0)
+      setWalletCurrency(data.user.walletCurrency || 'INR')
       setCommissionBalance(data.user.commissionBalance || 0)
+      setCommissionCurrency(data.user.commissionCurrency || 'INR')
       setTopupHistory(data.user.topupHistory || [])
       setBalanceRequests(data.requests || [])
     } catch (error) {
@@ -324,6 +325,7 @@ export default function UserDashboard() {
 
       const data = await response.json()
       setWalletBalance(data.walletBalance)
+      setWalletCurrency(data.walletCurrency || topupCurrency)
       setTopupHistory(data.topupHistory || [])
       setTopupAmount('')
     } catch (error) {
@@ -450,11 +452,11 @@ export default function UserDashboard() {
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
                 <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 border border-blue-500/20 rounded-xl p-6">
                   <div className="flex items-center justify-between mb-4">
-                    <p className="text-xs uppercase tracking-widest text-foreground/60 font-bold">Total Earnings</p>
+                    <p className="text-xs uppercase tracking-widest text-foreground/60 font-bold">Admin Commission</p>
                     <DollarSign className="w-5 h-5 text-blue-400" />
                   </div>
-                  <p className="text-2xl font-bold text-blue-400">₹{stats.totalEarnings?.toLocaleString() || '0'}</p>
-                  <p className="text-xs text-foreground/50 mt-2">+5% from referrals</p>
+                  <p className="text-2xl font-bold text-blue-400">{formatCurrency(stats.totalEarnings, commissionCurrency)}</p>
+                  <p className="text-xs text-foreground/50 mt-2">Manual admin-approved commission in {commissionCurrency}</p>
                 </div>
 
                 <div className="bg-gradient-to-br from-green-500/10 to-green-600/5 border border-green-500/20 rounded-xl p-6">
@@ -480,7 +482,7 @@ export default function UserDashboard() {
                     <p className="text-xs uppercase tracking-widest text-foreground/60 font-bold">Pending</p>
                     <TrendingUp className="w-5 h-5 text-orange-400" />
                   </div>
-                  <p className="text-2xl font-bold text-orange-400">₹{stats.pendingWithdraw?.toLocaleString() || '0'}</p>
+                  <p className="text-2xl font-bold text-orange-400">{formatCurrency(stats.pendingWithdraw)}</p>
                   <p className="text-xs text-foreground/50 mt-2">Withdraw available</p>
                 </div>
               </div>
@@ -555,7 +557,7 @@ export default function UserDashboard() {
                           </div>
                           <div>
                             <p className="text-xs uppercase tracking-widest text-foreground/60 font-bold mb-2">Plan Amount</p>
-                            <p className="text-green-400 font-bold text-lg">₹{user.planAmount?.toLocaleString() || '0'}</p>
+                            <p className="text-green-400 font-bold text-lg">{formatInrWithUsd(user.planAmount || 0)}</p>
                           </div>
                         </>
                       )}
@@ -570,18 +572,18 @@ export default function UserDashboard() {
                       <Gift className="w-6 h-6 text-primary" />
                       Referral Program
                     </h2>
-                    <p className="text-foreground/60 mb-8">Earn 5% commission on all referrals + unlock higher benefits</p>
+                    <p className="text-foreground/60 mb-8">Referral links help grow the network. Commission is credited manually by admin in INR only.</p>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                       <div className="bg-gradient-to-br from-green-500/10 to-green-600/5 border border-green-500/20 rounded-xl p-6">
-                        <p className="text-xs uppercase tracking-widest text-green-400 font-bold mb-3">Direct Referral Benefit</p>
-                        <p className="text-3xl font-bold text-green-400">5%</p>
-                        <p className="text-xs text-foreground/60 mt-3">Commission on admission fees</p>
+                        <p className="text-xs uppercase tracking-widest text-green-400 font-bold mb-3">Admin Commission</p>
+                        <p className="text-3xl font-bold text-green-400">Manual</p>
+                        <p className="text-xs text-foreground/60 mt-3">Commission is approved and added by admin only</p>
                       </div>
                       <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 border border-blue-500/20 rounded-xl p-6">
-                        <p className="text-xs uppercase tracking-widest text-blue-400 font-bold mb-3">Level Benefits</p>
-                        <p className="text-3xl font-bold text-blue-400">60:40</p>
-                        <p className="text-xs text-foreground/60 mt-3">Upline to downline split</p>
+                        <p className="text-xs uppercase tracking-widest text-blue-400 font-bold mb-3">Referral Tracking</p>
+                        <p className="text-3xl font-bold text-blue-400">Tree View</p>
+                        <p className="text-xs text-foreground/60 mt-3">Downline structure is tracked for review, not auto-paid</p>
                       </div>
                     </div>
 
@@ -741,19 +743,19 @@ export default function UserDashboard() {
                   <>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="bg-white/5 border border-white/10 rounded-3xl p-6 text-left">
-                        <p className="text-xs uppercase tracking-[0.2em] text-foreground/60 font-bold mb-4">Direct Commission</p>
-                        <p className="text-4xl font-bold text-green-400">{formatCurrency(directCommission)}</p>
-                        <p className="text-foreground/50 text-sm mt-2">From your direct leg referrals</p>
+                        <p className="text-xs uppercase tracking-[0.2em] text-foreground/60 font-bold mb-4">Manual Commission</p>
+                        <p className="text-4xl font-bold text-green-400">{formatCurrency(directCommission, commissionCurrency)}</p>
+                        <p className="text-foreground/50 text-sm mt-2">No automatic referral payout; admin credits appear here only</p>
                       </div>
                       <div className="bg-white/5 border border-white/10 rounded-3xl p-6 text-left">
-                        <p className="text-xs uppercase tracking-[0.2em] text-foreground/60 font-bold mb-4">Team Commission</p>
-                        <p className="text-4xl font-bold text-green-400">{formatCurrency(teamCommission)}</p>
-                        <p className="text-foreground/50 text-sm mt-2">From wider network activity</p>
+                        <p className="text-xs uppercase tracking-[0.2em] text-foreground/60 font-bold mb-4">Referral Network</p>
+                        <p className="text-4xl font-bold text-green-400">{formatCurrency(teamCommission, commissionCurrency)}</p>
+                        <p className="text-foreground/50 text-sm mt-2">Downline tracking is shown for review, not auto-paid</p>
                       </div>
                       <div className="bg-white/5 border border-white/10 rounded-3xl p-6 text-left">
-                        <p className="text-xs uppercase tracking-[0.2em] text-foreground/60 font-bold mb-4">Total Income</p>
-                        <p className="text-4xl font-bold text-primary">{formatCurrency(directCommission + teamCommission)}</p>
-                        <p className="text-foreground/50 text-sm mt-2">Real-time commission estimate</p>
+                        <p className="text-xs uppercase tracking-[0.2em] text-foreground/60 font-bold mb-4">Total Commission</p>
+                        <p className="text-4xl font-bold text-primary">{formatCurrency(commissionBalance, commissionCurrency)}</p>
+                        <p className="text-foreground/50 text-sm mt-2">Admin-approved commission balance in {commissionCurrency}</p>
                       </div>
                     </div>
 
@@ -765,6 +767,7 @@ export default function UserDashboard() {
                             <p><span className="text-white font-semibold">Total team members:</span> {stats.totalMembers}</p>
                             <p><span className="text-white font-semibold">Left chain size:</span> {legCounts.left}</p>
                             <p><span className="text-white font-semibold">Right chain size:</span> {legCounts.right}</p>
+                            <p className="text-foreground/50 mt-3">Referral payouts are manual and admin-approved in INR.</p>
                           </div>
                         ) : (
                           <p className="text-foreground/50">No referral data available yet.</p>
@@ -772,14 +775,14 @@ export default function UserDashboard() {
                       </div>
                       <div className="bg-white/5 border border-white/10 rounded-3xl p-6">
                         <p className="text-sm uppercase tracking-[0.18em] text-foreground/60 font-bold mb-4">Available Wallet</p>
-                        <p className="text-3xl font-bold text-primary">{formatCurrency(totalBalance)}</p>
-                        <p className="text-foreground/50 text-sm mt-2">Includes topup and earned commissions</p>
+                        <p className="text-3xl font-bold text-primary">{formatCurrency(walletBalance, walletCurrency)}</p>
+                        <p className="text-foreground/50 text-sm mt-2">Spendable wallet balance in {walletCurrency}</p>
                       </div>
                     </div>
                   </>
                 ) : (
                   <div className="bg-white/5 border border-white/10 rounded-3xl p-8">
-                    <p className="text-foreground/60 text-lg">Income details appear after admin approval and your first referrals join the network.</p>
+                    <p className="text-foreground/60 text-lg">Income details appear after admin approval and commission is manually added in INR.</p>
                   </div>
                 )}
               </div>
@@ -831,7 +834,7 @@ export default function UserDashboard() {
                         </div>
                       </div>
                       <div className="rounded-3xl border border-white/10 bg-[#08101a] p-4 text-sm text-foreground/60">
-                        Available balance: <span className="text-white font-semibold">{formatCurrency(totalBalance)}</span>
+                        Available balance: <span className="text-white font-semibold">{formatCurrency(walletBalance, walletCurrency)}</span>
                       </div>
                       <button
                         type="submit"
@@ -852,7 +855,7 @@ export default function UserDashboard() {
                         {balanceRequests.map((request) => (
                           <div key={request.id} className="rounded-2xl bg-[#0a0f19] border border-white/10 p-4">
                             <div className="flex items-center justify-between gap-3">
-                              <p className="font-semibold text-white">{formatCurrency(request.amount)} {request.currency}</p>
+                              <p className="font-semibold text-white">{formatCurrency(request.amount, request.currency)}</p>
                               <span className="text-xs uppercase tracking-[0.14em] text-foreground/60">{request.status}</span>
                             </div>
                             <p className="text-foreground/50 text-xs mt-2">{request.method} • {request.date}</p>
@@ -917,7 +920,7 @@ export default function UserDashboard() {
                         {topupHistory.map((entry) => (
                           <div key={entry.id} className="rounded-2xl bg-[#0a0f19] border border-white/10 p-4">
                             <div className="flex items-center justify-between gap-3">
-                              <p className="text-white font-semibold">{formatCurrency(entry.amount)} {entry.currency}</p>
+                              <p className="text-white font-semibold">{formatCurrency(entry.amount, entry.currency)}</p>
                               <span className="text-foreground/50 text-xs">{entry.date}</span>
                             </div>
                           </div>
@@ -937,27 +940,27 @@ export default function UserDashboard() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="bg-white/5 border border-white/10 rounded-3xl p-6">
                     <p className="text-xs uppercase tracking-[0.2em] text-foreground/60 font-bold mb-4">Wallet Balance</p>
-                    <p className="text-4xl font-bold text-primary">{formatCurrency(walletBalance)}</p>
-                    <p className="text-foreground/50 text-sm mt-2">Your spendable balance for topups and transfers.</p>
+                    <p className="text-4xl font-bold text-primary">{formatCurrency(walletBalance, walletCurrency)}</p>
+                    <p className="text-foreground/50 text-sm mt-2">Your spendable balance in {walletCurrency}.</p>
                   </div>
                   <div className="bg-white/5 border border-white/10 rounded-3xl p-6">
                     <p className="text-xs uppercase tracking-[0.2em] text-foreground/60 font-bold mb-4">Commission Balance</p>
-                    <p className="text-4xl font-bold text-green-400">{formatCurrency(commissionBalance)}</p>
-                    <p className="text-foreground/50 text-sm mt-2">Your earned commissions from referrals.</p>
+                    <p className="text-4xl font-bold text-green-400">{formatCurrency(commissionBalance, commissionCurrency)}</p>
+                    <p className="text-foreground/50 text-sm mt-2">Admin-approved commission balance in {commissionCurrency}.</p>
                   </div>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="bg-white/5 border border-white/10 rounded-3xl p-6">
                     <p className="text-xs uppercase tracking-[0.2em] text-foreground/60 font-bold mb-4">Total Available</p>
-                    <p className="text-3xl font-bold text-primary">{formatCurrency(totalBalance)}</p>
+                    <p className="text-3xl font-bold text-primary">{formatCurrency(walletBalance, walletCurrency)}</p>
                   </div>
                   <div className="bg-white/5 border border-white/10 rounded-3xl p-6">
-                    <p className="text-xs uppercase tracking-[0.2em] text-foreground/60 font-bold mb-4">Direct Commission</p>
-                    <p className="text-3xl font-bold text-green-400">{formatCurrency(directCommission)}</p>
+                    <p className="text-xs uppercase tracking-[0.2em] text-foreground/60 font-bold mb-4">Manual Commission</p>
+                    <p className="text-3xl font-bold text-green-400">{formatCurrency(directCommission, commissionCurrency)}</p>
                   </div>
                   <div className="bg-white/5 border border-white/10 rounded-3xl p-6">
-                    <p className="text-xs uppercase tracking-[0.2em] text-foreground/60 font-bold mb-4">Team Commission</p>
-                    <p className="text-3xl font-bold text-green-400">{formatCurrency(teamCommission)}</p>
+                    <p className="text-xs uppercase tracking-[0.2em] text-foreground/60 font-bold mb-4">Referral Network</p>
+                    <p className="text-3xl font-bold text-green-400">{formatCurrency(teamCommission, commissionCurrency)}</p>
                   </div>
                 </div>
                 <div className="bg-white/5 border border-white/10 rounded-3xl p-6">
@@ -965,7 +968,7 @@ export default function UserDashboard() {
                   <div className="grid grid-cols-1 gap-3 text-sm text-foreground/70">
                     <div className="rounded-2xl bg-[#0a0f19] border border-white/10 p-4">
                       <p className="text-white font-semibold">Wallet + Commission</p>
-                      <p className="text-foreground/50 mt-2">{formatCurrency(totalBalance)} available balance</p>
+                      <p className="text-foreground/50 mt-2">{formatCurrency(walletBalance, walletCurrency)} available balance</p>
                     </div>
                     <div className="rounded-2xl bg-[#0a0f19] border border-white/10 p-4">
                       <p className="text-white font-semibold">Pending Withdrawal</p>

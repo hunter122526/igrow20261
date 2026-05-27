@@ -29,6 +29,7 @@ export async function POST(
   }
 
   user.walletBalance = (user.walletBalance || 0) + amount
+  user.walletCurrency = currency.toUpperCase()
   user.topupHistory = user.topupHistory || []
   const creditRecord = {
     id: Date.now().toString(),
@@ -43,6 +44,7 @@ export async function POST(
   return NextResponse.json({
     message: 'User wallet credited successfully',
     walletBalance: user.walletBalance,
+    walletCurrency: user.walletCurrency,
     topupHistory: user.topupHistory,
   })
 }

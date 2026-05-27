@@ -23,15 +23,23 @@ interface DownlineTreeProps {
   } | null
 }
 
+const INR_TO_USD_RATE = 83.33
+
+function formatInrWithUsd(value: number) {
+  const inrAmount = `₹${value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`
+  const usdAmount = `$${(value / INR_TO_USD_RATE).toFixed(2)}`
+  return `${inrAmount} / ${usdAmount}`
+}
+
 function NodeCard({ node }: { node: DownlineNode }) {
   return (
-    <div className="rounded-3xl border border-white/10 bg-white/5 p-4 shadow-sm">
+    <div className="rounded-3xl border border-white/15 bg-[#07101d] p-4 shadow-[0_12px_40px_-20px_rgba(0,0,0,0.95)]">
       <div className="flex items-center gap-2 flex-wrap">
         <span className="text-sm font-semibold text-white">{node.name}</span>
         <span className="text-xs text-foreground/50">{node.email}</span>
       </div>
       <div className="mt-3 flex flex-wrap gap-2 items-center">
-        <span className="text-xs text-green-400 font-semibold">₹{node.planAmount.toLocaleString()}</span>
+        <span className="text-xs text-green-400 font-semibold">{formatInrWithUsd(node.planAmount)}</span>
         <span className={`text-[11px] px-2 py-1 rounded-full ${
           node.status === 'approved'
             ? 'bg-green-500/20 text-green-400'
@@ -71,7 +79,7 @@ function TreeNode({ node }: { node: DownlineNode }) {
           <div className="space-y-2">
             <div className="text-xs uppercase tracking-[0.2em] text-foreground/60">Left Leg</div>
             {node.left ? <TreeNode node={node.left} /> : (
-              <div className="rounded-3xl border border-dashed border-white/10 bg-white/5 p-4 text-sm text-foreground/50">
+              <div className="rounded-3xl border border-dashed border-white/15 bg-[#07101d] p-4 text-sm text-foreground/50">
                 No left referral yet
               </div>
             )}
@@ -79,7 +87,7 @@ function TreeNode({ node }: { node: DownlineNode }) {
           <div className="space-y-2">
             <div className="text-xs uppercase tracking-[0.2em] text-foreground/60">Right Leg</div>
             {node.right ? <TreeNode node={node.right} /> : (
-              <div className="rounded-3xl border border-dashed border-white/10 bg-white/5 p-4 text-sm text-foreground/50">
+              <div className="rounded-3xl border border-dashed border-white/15 bg-[#07101d] p-4 text-sm text-foreground/50">
                 No right referral yet
               </div>
             )}
@@ -103,19 +111,19 @@ export default function DownlineTree({ data, stats }: DownlineTreeProps) {
     <div className="space-y-6">
       {stats && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+          <div className="bg-[#07101d] border border-white/10 rounded-xl p-4 shadow-[0_10px_30px_-20px_rgba(0,0,0,0.9)]">
             <p className="text-foreground/60 text-xs uppercase tracking-wider font-bold mb-2">
               Total Members
             </p>
             <p className="text-2xl font-bold text-primary">{stats.totalMembers}</p>
           </div>
-          <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+          <div className="bg-[#07101d] border border-white/10 rounded-xl p-4 shadow-[0_10px_30px_-20px_rgba(0,0,0,0.9)]">
             <p className="text-foreground/60 text-xs uppercase tracking-wider font-bold mb-2">
               Total Revenue
             </p>
-            <p className="text-2xl font-bold text-green-400">₹{stats.totalRevenue.toLocaleString()}</p>
+            <p className="text-2xl font-bold text-green-400">{formatInrWithUsd(stats.totalRevenue)}</p>
           </div>
-          <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+          <div className="bg-[#07101d] border border-white/10 rounded-xl p-4 shadow-[0_10px_30px_-20px_rgba(0,0,0,0.9)]">
             <p className="text-foreground/60 text-xs uppercase tracking-wider font-bold mb-2">
               Network Levels
             </p>
@@ -124,8 +132,11 @@ export default function DownlineTree({ data, stats }: DownlineTreeProps) {
         </div>
       )}
 
-      <div className="bg-white/5 border border-white/10 rounded-2xl p-6 overflow-x-auto">
-        <h3 className="text-lg font-bold mb-4 text-white">Your Downline Network</h3>
+      <div className="bg-[#040b14] border border-white/15 rounded-2xl p-6 overflow-x-auto shadow-[0_20px_80px_-36px_rgba(0,0,0,0.95)]">
+        <div className="mb-4 flex items-center justify-between">
+          <h3 className="text-lg font-bold text-white">Your Downline Network</h3>
+          <span className="rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.24em] text-primary">Live Tree</span>
+        </div>
         <TreeNode node={data} />
       </div>
     </div>

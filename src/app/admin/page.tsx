@@ -12,6 +12,12 @@ import {
 } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
+const CRYPTO_CURRENCIES = ['USDT', 'BTC', 'ETH', 'BNB', 'SOL']
+function formatAmount(value: number, currency?: string) {
+  const formatted = value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })
+  return currency ? `${formatted} ${currency}` : formatted
+}
+
 export default function AdminPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [username, setUsername] = useState("")
@@ -796,8 +802,8 @@ export default function AdminPage() {
                       <td className="px-6 py-4 font-medium text-white group-hover:text-primary transition-colors">{reg.name}</td>
                       <td className="px-6 py-4 text-foreground/70 text-xs font-mono">{reg.email}</td>
                       <td className="px-6 py-4 text-foreground/70 text-sm">{reg.phone}</td>
-                      <td className="px-6 py-4 font-semibold text-green-400">₹{(reg.walletBalance || 0).toLocaleString()}</td>
-                      <td className="px-6 py-4 text-foreground/70">₹{(reg.commissionBalance || 0).toLocaleString()}</td>
+                      <td className="px-6 py-4 font-semibold text-green-400">{formatAmount(reg.walletBalance || 0)}</td>
+                      <td className="px-6 py-4 text-foreground/70">{formatAmount(reg.commissionBalance || 0)}</td>
                       <td className="px-6 py-4">
                         <span className="px-3 py-1 bg-primary/20 text-primary text-xs rounded-full font-medium border border-primary/30">
                           {reg.program}
@@ -1131,9 +1137,17 @@ export default function AdminPage() {
                       <tr key={request.id} className="hover:bg-white/5">
                         <td className="px-4 py-3 font-medium text-white">{request.userName}</td>
                         <td className="px-4 py-3 text-foreground/70 text-xs font-mono">{request.userEmail}</td>
-                        <td className="px-4 py-3 text-green-400 font-semibold">₹{request.amount.toLocaleString()}</td>
+                        <td className="px-4 py-3 text-green-400 font-semibold">{formatAmount(request.amount)}</td>
                         <td className="px-4 py-3 text-foreground/70">{request.currency}</td>
-                        <td className="px-4 py-3 text-foreground/70">{request.status}</td>
+                        <td className="px-4 py-3">
+                          <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                            request.status === 'approved' ? 'bg-green-500/15 text-green-300' :
+                            request.status === 'rejected' ? 'bg-red-500/15 text-red-300' :
+                            'bg-yellow-500/15 text-yellow-300'
+                          }`}>
+                            {request.status}
+                          </span>
+                        </td>
                         <td className="px-4 py-3">
                           {request.status === 'pending' ? (
                             <div className="flex gap-2">
@@ -1210,9 +1224,9 @@ export default function AdminPage() {
                     onChange={(e) => setRechargeCurrency(e.target.value)}
                     className="mt-2 w-full rounded-xl border border-white/10 bg-[#070b11] px-4 py-3 text-sm text-white"
                   >
-                    <option value="USDT">USDT</option>
-                    <option value="BTC">BTC</option>
-                    <option value="ETH">ETH</option>
+                    {CRYPTO_CURRENCIES.map((currency) => (
+                      <option key={currency} value={currency}>{currency}</option>
+                    ))}
                   </select>
                 </div>
                 <div className="lg:col-span-2">
@@ -1283,7 +1297,7 @@ export default function AdminPage() {
                   <div>
                     <p className="text-xs uppercase tracking-[0.18em] text-foreground/60 font-bold mb-1">Credit Wallet To</p>
                     <p className="text-white font-semibold">{registrations.find((user) => user.id === selectedRechargeUserId)?.name || 'Selected user'}</p>
-                    <p className="text-foreground/60 text-sm mt-1">Balance: ₹{(registrations.find((user) => user.id === selectedRechargeUserId)?.walletBalance || 0).toLocaleString()}</p>
+                    <p className="text-foreground/60 text-sm mt-1">Balance: {formatAmount(registrations.find((user) => user.id === selectedRechargeUserId)?.walletBalance || 0)}</p>
                   </div>
                   <button
                     type="button"
@@ -1341,7 +1355,7 @@ export default function AdminPage() {
                     <tr key={u.id} className="group hover:bg-white/5">
                       <td className="px-4 py-3">{u.name}</td>
                       <td className="px-4 py-3 text-xs font-mono">{u.email}</td>
-                      <td className="px-4 py-3">₹{(u.walletBalance || 0).toLocaleString()}</td>
+                      <td className="px-4 py-3">{formatAmount(u.walletBalance || 0)}</td>
                       <td className="px-4 py-3 text-xs font-mono">
                         {revealedPasswords[u.id] ? u.password : '•'.repeat(8)}
                         <button onClick={() => toggleReveal(u.id)} className="ml-3 text-primary text-xs">{revealedPasswords[u.id] ? 'Hide' : 'Show'}</button>

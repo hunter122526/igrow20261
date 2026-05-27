@@ -23,12 +23,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'User not found' }, { status: 404 })
   }
 
+  const selectedCurrency = (currency || user.walletCurrency || 'INR').toUpperCase()
   user.walletBalance = (user.walletBalance || 0) + value
+  user.walletCurrency = selectedCurrency
   user.topupHistory = user.topupHistory || []
   const topupEntry = {
     id: Date.now().toString(),
     amount: value,
-    currency: currency || 'USDT',
+    currency: selectedCurrency,
     date: new Date().toLocaleDateString(),
     source: 'User Topup',
   }
@@ -36,6 +38,7 @@ export async function POST(request: NextRequest) {
 
   return NextResponse.json({
     walletBalance: user.walletBalance,
+    walletCurrency: user.walletCurrency,
     topupHistory: user.topupHistory,
   })
 }

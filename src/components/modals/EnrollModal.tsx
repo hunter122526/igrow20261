@@ -288,11 +288,11 @@ export function EnrollModal({ children, open, onOpenChange }: EnrollModalProps) 
                     <SelectValue placeholder="Select Desired Program" />
                   </SelectTrigger>
                   <SelectContent className="bg-[#0a0a0a] border-white/10 text-white rounded-xl">
-                    <SelectItem value="Basic Tier (₹11,000)">Basic Tier (₹11,000)</SelectItem>
-                    <SelectItem value="Advanced Tier (₹21,000)">Advanced Tier (₹21,000)</SelectItem>
-                    <SelectItem value="Advanced 2.0 (₹31,000)">Advanced 2.0 (₹31,000)</SelectItem>
-                    <SelectItem value="Combo Mastery (₹45,000)">Combo Mastery (₹45,000)</SelectItem>
-                    <SelectItem value="Career Internship (₹15,000)">Career Internship (₹15,000)</SelectItem>
+                    <SelectItem value="Basic Tier (₹11,000)">Basic Tier (₹11,000 / ~$132.13)</SelectItem>
+                    <SelectItem value="Advanced Tier (₹21,000)">Advanced Tier (₹21,000 / ~$252.10)</SelectItem>
+                    <SelectItem value="Advanced 2.0 (₹31,000)">Advanced 2.0 (₹31,000 / ~$371.95)</SelectItem>
+                    <SelectItem value="Combo Mastery (₹45,000)">Combo Mastery (₹45,000 / ~$540.00)</SelectItem>
+                    <SelectItem value="Career Internship (₹15,000)">Career Internship (₹15,000 / ~$180.00)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

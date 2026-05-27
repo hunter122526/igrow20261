@@ -24,11 +24,13 @@ export async function POST(
   }
 
   const user = registrations.find((u) => u.id === params.id)
+  const currency = (body.currency || user?.commissionCurrency || 'INR').toUpperCase()
   if (!user) {
     return NextResponse.json({ error: 'User not found' }, { status: 404 })
   }
 
   user.commissionBalance = user.commissionBalance || 0
+  user.commissionCurrency = currency
 
   if (action === 'add') {
     user.commissionBalance += amount
@@ -45,11 +47,16 @@ export async function POST(
   user.topupHistory.unshift({
     id: Date.now().toString(),
     amount: amount,
-    currency: 'INR',
+    currency,
     date: new Date().toLocaleDateString(),
     source: `Commission ${action} by ${auth.username}`,
     note: reason,
   })
 
-  return NextResponse.json({ message: 'Commission updated', commissionBalance: user.commissionBalance, user })
+  return NextResponse.json({
+    message: 'Commission updated',
+    commissionBalance: user.commissionBalance,
+    commissionCurrency: user.commissionCurrency,
+    user,
+  })
 }
