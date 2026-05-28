@@ -168,6 +168,22 @@ export async function PATCH(
       })
     }
 
+    if (action === 'updateUser') {
+      const userUpdates = body.user || {}
+      if (typeof userUpdates.name === 'string') registration.name = userUpdates.name
+      if (typeof userUpdates.email === 'string') registration.email = userUpdates.email
+      if (typeof userUpdates.phone === 'string') registration.phone = userUpdates.phone
+      if (typeof userUpdates.program === 'string') registration.program = userUpdates.program
+      if (typeof userUpdates.status === 'string') registration.status = userUpdates.status
+      if (typeof userUpdates.idCardIssued === 'boolean') registration.idCardIssued = userUpdates.idCardIssued
+      if (typeof userUpdates.idCardIssuedAt === 'string') registration.idCardIssuedAt = userUpdates.idCardIssuedAt
+
+      return NextResponse.json({
+        message: 'User updated successfully',
+        registration,
+      })
+    }
+
     if (action !== 'resetPassword' || !password) {
       return NextResponse.json(
         { error: 'Invalid request' },

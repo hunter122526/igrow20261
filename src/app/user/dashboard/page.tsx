@@ -42,6 +42,36 @@ function formatInrWithUsd(value: number) {
   return `${inrAmount} / ${usdAmount}`
 }
 
+function formatCardDate(value: string) {
+  if (!value) return '-'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+  return date.toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' })
+}
+
+function getCardValidUntil(value: string) {
+  if (!value) return '-'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+  const validDate = new Date(date)
+  validDate.setFullYear(validDate.getFullYear() + 1)
+  return validDate.toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' })
+}
+
+function getInitials(name: string) {
+  return name
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((segment) => segment[0]?.toUpperCase())
+    .join('')
+}
+
+function getProgramLabel(program: string) {
+  const match = program?.match(/^(.*?)(?:\s*\(₹[\d,]+\))?$/)
+  return match ? match[1].trim() : program
+}
+
 function flattenDownline(node: any | null): any[] {
   if (!node) return []
   return [node, ...flattenDownline(node.left), ...flattenDownline(node.right)]
@@ -530,6 +560,107 @@ export default function UserDashboard() {
                           <p className="text-primary font-mono font-bold">{user?.id}</p>
                         </div>
                       </div>
+
+                      {user?.idCardIssued && (
+                        <div className="mt-6 md:col-span-2 w-full overflow-hidden rounded-[2rem] border border-white/10 bg-slate-950 shadow-[0_25px_60px_-35px_rgba(15,23,42,0.9)]">
+                          <div className="grid gap-5 lg:grid-cols-[1.4fr_1fr]">
+                            <div className="relative overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 p-6">
+                              <div className="absolute inset-x-0 top-0 h-24 bg-sky-600/10" />
+                              <div className="relative z-10">
+                                <div className="flex items-start justify-between gap-4">
+                                  <div>
+                                    <p className="text-xs uppercase tracking-[0.3em] text-cyan-300 font-bold">IGROW</p>
+                                    <p className="mt-2 text-sm font-semibold uppercase tracking-[0.2em] text-slate-300">Membership ID Card</p>
+                                  </div>
+                                  <img src="/IGROW%20LOGO.png" alt="IGROW logo" className="h-14 w-14 rounded-full border border-white/10 bg-white/10 p-2 object-contain" />
+                                </div>
+
+                                <div className="mt-8 flex flex-wrap items-center gap-4">
+                                  <div className="relative h-28 w-28 overflow-hidden rounded-full border border-white/10 bg-slate-900">
+                                    {user?.profileImage ? (
+                                      <img src={user.profileImage} alt={user.name || 'Profile'} className="h-full w-full object-cover" />
+                                    ) : (
+                                      <div className="flex h-full w-full items-center justify-center bg-slate-800 text-2xl font-bold text-white/80">
+                                        {getInitials(user?.name || 'U')}
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  <div className="min-w-[180px]">
+                                    <p className="text-2xl font-bold text-white">{user?.name}</p>
+                                    <p className="text-sm uppercase tracking-[0.22em] text-slate-400">{getProgramLabel(user?.program || '')}</p>
+                                  </div>
+                                </div>
+
+                                <div className="mt-8 grid gap-3 text-slate-200">
+                                  <div className="rounded-[1.5rem] bg-white/5 p-4 border border-white/10">
+                                    <div className="flex justify-between text-xs uppercase tracking-[0.25em] text-slate-400">
+                                      <span>User ID</span>
+                                      <span className="font-semibold text-white">{user?.id}</span>
+                                    </div>
+                                    <div className="mt-3 flex justify-between text-xs uppercase tracking-[0.25em] text-slate-400">
+                                      <span>Email</span>
+                                      <span className="font-semibold text-white break-all">{user?.email}</span>
+                                    </div>
+                                  </div>
+
+                                  <div className="grid gap-3 sm:grid-cols-2">
+                                    <div className="rounded-[1.5rem] bg-sky-500/10 p-4 border border-sky-400/10">
+                                      <p className="text-[10px] uppercase tracking-[0.25em] text-sky-200">Issued</p>
+                                      <p className="mt-2 font-semibold text-white">{formatCardDate(user?.idCardIssuedAt || '')}</p>
+                                    </div>
+                                    <div className="rounded-[1.5rem] bg-slate-900/80 p-4 border border-white/10">
+                                      <p className="text-[10px] uppercase tracking-[0.25em] text-slate-400">Valid Till</p>
+                                      <p className="mt-2 font-semibold text-white">{getCardValidUntil(user?.idCardIssuedAt || '')}</p>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="bg-slate-950/95 p-6">
+                              <div className="rounded-[2rem] bg-slate-900/95 p-6 border border-white/10">
+                                <div className="mb-7">
+                                  <p className="text-[10px] uppercase tracking-[0.3em] text-cyan-300 font-semibold">Company Address</p>
+                                  <p className="mt-3 font-bold text-white">IGROW Learning Society</p>
+                                  <p className="mt-2 text-sm leading-6 text-slate-400">500 Business Avenue, Mumbai, India</p>
+                                </div>
+
+                                <div className="mb-7">
+                                  <p className="text-3xl font-bold uppercase tracking-[0.12em] text-white">Professional</p>
+                                  <p className="text-3xl font-bold uppercase tracking-[0.12em] text-sky-400">ID Card</p>
+                                </div>
+
+                                <div className="space-y-3 text-sm text-slate-200">
+                                  <div className="rounded-3xl bg-white/5 p-4 border border-white/10">
+                                    <div className="flex justify-between">
+                                      <span className="font-medium text-slate-400">Program</span>
+                                      <span className="font-semibold text-white">{getProgramLabel(user?.program || '')}</span>
+                                    </div>
+                                  </div>
+                                  <div className="rounded-3xl bg-white/5 p-4 border border-white/10">
+                                    <div className="flex justify-between">
+                                      <span className="font-medium text-slate-400">Status</span>
+                                      <span className="font-semibold text-white">{user?.status === 'approved' ? 'Approved' : 'Pending'}</span>
+                                    </div>
+                                  </div>
+                                  <div className="rounded-3xl bg-white/5 p-4 border border-white/10">
+                                    <div className="flex justify-between">
+                                      <span className="font-medium text-slate-400">Email</span>
+                                      <span className="font-semibold text-white break-all">{user?.email}</span>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div className="mt-8 border-t border-white/10 pt-6">
+                                  <p className="text-[10px] uppercase tracking-[0.3em] text-slate-500">Authorized Signature</p>
+                                  <div className="mt-4 h-px w-32 bg-sky-400/40" />
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -553,7 +684,7 @@ export default function UserDashboard() {
                         <>
                           <div className="pt-4 border-t border-white/10">
                             <p className="text-xs uppercase tracking-widest text-foreground/60 font-bold mb-2">Program</p>
-                            <p className="text-white font-semibold">{user.program}</p>
+                            <p className="text-white font-semibold">{getProgramLabel(user.program || '')}</p>
                           </div>
                           <div>
                             <p className="text-xs uppercase tracking-widest text-foreground/60 font-bold mb-2">Plan Amount</p>
@@ -982,18 +1113,6 @@ export default function UserDashboard() {
                 </div>
               </div>
             )}
-
-            {/* Admin Access */}
-            <div className="mt-12 p-8 bg-gradient-to-r from-primary/20 via-primary/10 to-primary/5 border border-primary/30 rounded-2xl text-center">
-              <Bell className="w-8 h-8 text-primary mx-auto mb-3" />
-              <p className="text-foreground/80 mb-4 font-semibold">Admin Access</p>
-              <Button
-                onClick={() => router.push('/admin')}
-                className="bg-primary hover:bg-primary/90 text-background px-8 py-3 rounded-lg font-bold transition-all"
-              >
-                Go to Admin Panel
-              </Button>
-            </div>
 
             <div className="pb-8"></div>
           </div>

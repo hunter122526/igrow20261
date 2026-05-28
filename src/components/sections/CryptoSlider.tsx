@@ -21,14 +21,13 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 
-// Mock data configuration
 const INITIAL_COINS = [
-  { name: 'Bitcoin', symbol: 'BTC', price: 98043.04, change: 1.88, color: '#f7931a', marketCap: '1.9T', volume: '45.2B' },
-  { name: 'Ethereum', symbol: 'ETH', price: 2676.97, change: -1.35, color: '#627eea', marketCap: '320B', volume: '15.8B' },
-  { name: 'Cronos', symbol: 'CRO', price: 0.12126844, change: 5.33, color: '#002d74', marketCap: '3.1B', volume: '145M' },
-  { name: 'XRP', symbol: 'XRP', price: 2.41, change: -0.33, color: '#23292f', marketCap: '120B', volume: '5.1B' },
-  { name: 'Solana', symbol: 'SOL', price: 185.22, change: 3.24, color: '#14f195', marketCap: '85B', volume: '6.5B' },
-  { name: 'Cardano', symbol: 'ADA', price: 0.65, change: -0.85, color: '#0033ad', marketCap: '22B', volume: '480M' },
+  { id: 'bitcoin', name: 'Bitcoin', symbol: 'BTC', price: 98043.04, change: 1.88, color: '#f7931a', marketCap: '1.9T', volume: '45.2B' },
+  { id: 'ethereum', name: 'Ethereum', symbol: 'ETH', price: 2676.97, change: -1.35, color: '#627eea', marketCap: '320B', volume: '15.8B' },
+  { id: 'cronos', name: 'Cronos', symbol: 'CRO', price: 0.12126844, change: 5.33, color: '#002d74', marketCap: '3.1B', volume: '145M' },
+  { id: 'ripple', name: 'XRP', symbol: 'XRP', price: 2.41, change: -0.33, color: '#23292f', marketCap: '120B', volume: '5.1B' },
+  { id: 'solana', name: 'Solana', symbol: 'SOL', price: 185.22, change: 3.24, color: '#14f195', marketCap: '85B', volume: '6.5B' },
+  { id: 'cardano', name: 'Cardano', symbol: 'ADA', price: 0.65, change: -0.85, color: '#0033ad', marketCap: '22B', volume: '480M' },
 ]
 
 const DEFAULT_WHATSAPP_CHANNEL_URL = "https://whatsapp.com/channel/igrow-society"
@@ -62,30 +61,16 @@ function CryptoDetailModal({ coin, whatsappLink }: { coin: typeof INITIAL_COINS[
   const [currentPrice, setCurrentPrice] = useState(coin.price)
   const isPositive = coin.change >= 0
 
-  // Generate data when timeframe changes
   useEffect(() => {
-    const tf = TIMEFRAMES.find(t => t.label === activeTimeframe) || TIMEFRAMES[1];
-    const data = generateTimeframeData(coin.price, tf.points, tf.volatility);
-    setChartData(data);
-    setCurrentPrice(data[data.length - 1].value);
+    const tf = TIMEFRAMES.find(t => t.label === activeTimeframe) || TIMEFRAMES[1]
+    const data = generateTimeframeData(coin.price, tf.points, tf.volatility)
+    setChartData(data)
+    setCurrentPrice(coin.price)
   }, [activeTimeframe, coin.price])
 
-  // Real-time ticking effect
   useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentPrice(prev => {
-        const delta = (Math.random() - 0.5) * (prev * 0.001);
-        const next = prev + delta;
-        setChartData(prevData => {
-          if (prevData.length === 0) return prevData;
-          const newData = [...prevData.slice(1), { ...prevData[prevData.length-1], value: next }];
-          return newData;
-        });
-        return next;
-      });
-    }, 3000);
-    return () => clearInterval(interval);
-  }, []);
+    setCurrentPrice(coin.price)
+  }, [coin.price])
 
   return (
     <DialogContent className="max-w-4xl bg-[#06080a] border-white/10 text-white rounded-[32px] overflow-hidden p-0">
@@ -277,20 +262,8 @@ function CryptoCard({ coin, whatsappLink }: { coin: typeof INITIAL_COINS[0], wha
 
   useEffect(() => {
     setIsMounted(true)
+    setCurrentPrice(coin.price)
     setData(generateTimeframeData(coin.price, 20, 0.002))
-
-    const interval = setInterval(() => {
-      setCurrentPrice(prev => {
-        const delta = (Math.random() - 0.5) * (prev * 0.001)
-        const newPrice = prev + delta
-        setData(prevData => {
-          const newData = [...prevData.slice(1), { value: newPrice }]
-          return newData
-        })
-        return newPrice
-      })
-    }, 4000)
-    return () => clearInterval(interval)
   }, [coin.price])
 
   if (!isMounted) {
@@ -369,7 +342,48 @@ function CryptoCard({ coin, whatsappLink }: { coin: typeof INITIAL_COINS[0], wha
 
 export function CryptoSlider({ settings }: { settings?: any }) {
   const [activeTab, setActiveTab] = useState('trending')
+  const [coins, setCoins] = useState(INITIAL_COINS)
+  const [marketError, setMarketError] = useState('')
   const whatsappLink = settings?.whatsappGroupUrl || 'https://whatsapp.com/channel/igrow-society'
+
+  useEffect(() => {
+    let isMounted = true
+    const loadLiveRates = async () => {
+      try {
+        const response = await fetch('/api/market-feed')
+        const data = await response.json()
+        if (!response.ok || !data?.coins || !Array.isArray(data.coins)) {
+          throw new Error(data?.error || 'Unable to load live market rates')
+        }
+        if (!isMounted) return
+
+        const mapped = data.coins.map((item: any) => ({
+          id: item.id,
+          name: item.name,
+          symbol: item.symbol.toUpperCase(),
+          price: item.price ?? 0,
+          change: item.change ?? 0,
+          color: INITIAL_COINS.find((coin) => coin.id === item.id)?.color || '#10b981',
+          marketCap: item.marketCap || '-',
+          volume: item.volume || '-',
+        }))
+
+        setCoins(mapped)
+        setMarketError('')
+      } catch (error) {
+        console.warn('Live market feed error:', error)
+        if (!isMounted) return
+        setMarketError('Live rates unavailable. Showing the latest available feed.')
+      }
+    }
+
+    loadLiveRates()
+    const interval = setInterval(loadLiveRates, 60000)
+    return () => {
+      isMounted = false
+      clearInterval(interval)
+    }
+  }, [])
 
   return (
     <section id="markets" className="py-24 relative bg-[#02080a] overflow-hidden">
@@ -427,11 +441,16 @@ export function CryptoSlider({ settings }: { settings?: any }) {
                 <CarouselNext className="static translate-y-0 h-10 w-10 bg-white/5 border-white/10 hover:bg-white/10 text-white" />
               </div>
             </div>
+            {marketError ? (
+              <div className="mt-4 rounded-2xl border border-amber-400/20 bg-amber-500/10 p-4 text-foreground/80 text-sm">
+                {marketError}
+              </div>
+            ) : null}
           </div>
 
           <CarouselContent className="-ml-4">
-            {INITIAL_COINS.map((coin, index) => (
-              <CarouselItem key={index} className="pl-4 md:basis-1/2 lg:basis-1/4 h-[380px]">
+            {coins.map((coin, index) => (
+              <CarouselItem key={coin.id || index} className="pl-4 md:basis-1/2 lg:basis-1/4 h-[380px]">
                 <CryptoCard coin={coin} whatsappLink={whatsappLink} />
               </CarouselItem>
             ))}

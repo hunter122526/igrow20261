@@ -13,9 +13,15 @@ import {
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
 const CRYPTO_CURRENCIES = ['USDT', 'BTC', 'ETH', 'BNB', 'SOL']
+const ADMIN_WALLET_CURRENCIES = ['INR', 'USDT', 'EUR']
 function formatAmount(value: number, currency?: string) {
   const formatted = value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })
   return currency ? `${formatted} ${currency}` : formatted
+}
+
+function getProgramLabel(program: string) {
+  const match = program?.match(/^(.*?)(?:\s*\(₹[\d,]+\))?$/)
+  return match ? match[1].trim() : program
 }
 
 export default function AdminPage() {
@@ -41,6 +47,13 @@ export default function AdminPage() {
   const [rechargeAmount, setRechargeAmount] = useState('')
   const [rechargeCurrency, setRechargeCurrency] = useState('USDT')
   const [rechargeNote, setRechargeNote] = useState('')
+  const [adminWalletBalances, setAdminWalletBalances] = useState<Record<string, number>>({ INR: 0, USDT: 0, EUR: 0 })
+  const [adminWalletLedger, setAdminWalletLedger] = useState<any[]>([])
+  const [adminWalletAmount, setAdminWalletAmount] = useState('')
+  const [adminWalletCurrency, setAdminWalletCurrency] = useState('INR')
+  const [adminWalletNote, setAdminWalletNote] = useState('')
+  const [adminWalletLoading, setAdminWalletLoading] = useState(false)
+  const [walletTransferLoading, setWalletTransferLoading] = useState(false)
 
   const [revealedPasswords, setRevealedPasswords] = useState<Record<string, boolean>>({})
   const [newUserName, setNewUserName] = useState('')
@@ -53,6 +66,15 @@ export default function AdminPage() {
   const [passwordResetUserId, setPasswordResetUserId] = useState('')
   const [passwordResetValue, setPasswordResetValue] = useState('')
   const [passwordResetLoading, setPasswordResetLoading] = useState(false)
+  const [selectedEditUserId, setSelectedEditUserId] = useState('')
+  const [editUserName, setEditUserName] = useState('')
+  const [editUserEmail, setEditUserEmail] = useState('')
+  const [editUserPhone, setEditUserPhone] = useState('')
+  const [editUserProgram, setEditUserProgram] = useState('')
+  const [editUserStatus, setEditUserStatus] = useState('approved')
+  const [editIdCardIssued, setEditIdCardIssued] = useState(false)
+  const [editIdCardIssuedAt, setEditIdCardIssuedAt] = useState('')
+  const [editUserLoading, setEditUserLoading] = useState(false)
   const [selectedTreeUserId, setSelectedTreeUserId] = useState('')
   const [treeData, setTreeData] = useState<any | null>(null)
   const [treeLoading, setTreeLoading] = useState(false)
@@ -69,8 +91,57 @@ export default function AdminPage() {
     if (isLoggedIn) {
       fetchRegistrations()
       fetchRechargeRequests()
+      fetchAdminWallet()
     }
   }, [isLoggedIn])
+
+  const fetchAdminWallet = async () => {
+    try {
+      const response = await fetch('/api/admin/wallet')
+      if (!response.ok) {
+        return
+      }
+      const data = await response.json()
+      setAdminWalletBalances(data.balances || { INR: 0, USDT: 0, EUR: 0 })
+      setAdminWalletLedger(data.ledger || [])
+    } catch (err) {
+      console.warn('Failed to fetch admin wallet', err)
+    }
+  }
+
+  const handleAdminWalletDeposit = async (e?: React.FormEvent | React.MouseEvent<HTMLButtonElement>) => {
+    if (e?.preventDefault) {
+      e.preventDefault()
+    }
+    if (!adminWalletAmount || parseFloat(adminWalletAmount) <= 0) {
+      setError('Enter a valid admin wallet deposit amount')
+      return
+    }
+    setAdminWalletLoading(true)
+    try {
+      const response = await fetch('/api/admin/wallet/deposit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount: adminWalletAmount, currency: adminWalletCurrency, note: adminWalletNote })
+      })
+
+      const data = await response.json()
+      if (!response.ok) {
+        setError(data.error || 'Failed to deposit into admin wallet')
+        return
+      }
+
+      setAdminWalletBalances(data.balances || adminWalletBalances)
+      setAdminWalletLedger(data.ledger || adminWalletLedger)
+      setAdminWalletAmount('')
+      setAdminWalletNote('')
+      setError('')
+    } catch (err) {
+      setError('Error depositing into admin wallet')
+    } finally {
+      setAdminWalletLoading(false)
+    }
+  }
 
   const checkAdminSession = async () => {
     setAuthLoading(true)
@@ -171,6 +242,72 @@ export default function AdminPage() {
     }
   }
 
+  const openEditUser = (id: string) => {
+    const user = registrations.find((u) => u.id === id)
+    if (!user) return
+    setSelectedEditUserId(id)
+    setEditUserName(user.name || '')
+    setEditUserEmail(user.email || '')
+    setEditUserPhone(user.phone || '')
+    setEditUserProgram(user.program || '')
+    setEditUserStatus(user.status || 'approved')
+    setEditIdCardIssued(!!user.idCardIssued)
+    setEditIdCardIssuedAt(user.idCardIssuedAt || '')
+  }
+
+  const closeEditUser = () => {
+    setSelectedEditUserId('')
+    setEditUserName('')
+    setEditUserEmail('')
+    setEditUserPhone('')
+    setEditUserProgram('')
+    setEditUserStatus('approved')
+    setEditIdCardIssued(false)
+    setEditIdCardIssuedAt('')
+  }
+
+  const handleSaveUserDetails = async (e?: React.FormEvent) => {
+    if (e?.preventDefault) {
+      e.preventDefault()
+    }
+    if (!selectedEditUserId) {
+      setError('Select a user to edit')
+      return
+    }
+
+    setEditUserLoading(true)
+    try {
+      const response = await fetch(`/api/registrations/${selectedEditUserId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'updateUser',
+          user: {
+            name: editUserName,
+            email: editUserEmail,
+            phone: editUserPhone,
+            program: editUserProgram,
+            status: editUserStatus,
+            idCardIssued: editIdCardIssued,
+            idCardIssuedAt: editIdCardIssuedAt,
+          },
+        }),
+      })
+      const data = await response.json()
+      if (!response.ok) {
+        setError(data.error || 'Failed to update user')
+        return
+      }
+      setError('')
+      await fetchRegistrations()
+      closeEditUser()
+    } catch (err) {
+      setError('Error saving user details')
+    } finally {
+      setEditUserLoading(false)
+    }
+  }
+
   const fetchRechargeRequests = async () => {
     try {
       const response = await fetch('/api/recharge-requests')
@@ -237,27 +374,39 @@ export default function AdminPage() {
       setError('Select a user first')
       return
     }
+    if (!rechargeAmount || parseFloat(rechargeAmount) <= 0) {
+      setError('Enter a valid recharge amount')
+      return
+    }
 
-    setRequestActionLoading(selectedRechargeUserId)
+    setWalletTransferLoading(true)
     try {
-      const response = await fetch(`/api/users/${selectedRechargeUserId}/recharge`, {
+      const response = await fetch('/api/admin/wallet/transfer', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount: rechargeAmount, currency: rechargeCurrency, note: rechargeNote })
+        body: JSON.stringify({
+          amount: rechargeAmount,
+          currency: rechargeCurrency,
+          userId: selectedRechargeUserId,
+          note: rechargeNote || `Transfer to ${selectedRechargeUserId}`,
+        })
       })
-      if (response.ok) {
-        setError('')
-        setRechargeAmount('')
-        setRechargeNote('')
-        await fetchRegistrations()
-      } else {
-        const data = await response.json()
-        setError(data.error || 'Failed to credit user wallet')
+
+      const data = await response.json()
+      if (!response.ok) {
+        setError(data.error || 'Failed to credit user wallet from admin wallet')
+        return
       }
+
+      setError('')
+      setRechargeAmount('')
+      setRechargeNote('')
+      await fetchRegistrations()
+      await fetchAdminWallet()
     } catch (err) {
-      setError('Error crediting user wallet')
+      setError('Error crediting user wallet from admin wallet')
     } finally {
-      setRequestActionLoading(null)
+      setWalletTransferLoading(false)
     }
   }
 
@@ -805,8 +954,8 @@ export default function AdminPage() {
                       <td className="px-6 py-4 font-semibold text-green-400">{formatAmount(reg.walletBalance || 0)}</td>
                       <td className="px-6 py-4 text-foreground/70">{formatAmount(reg.commissionBalance || 0)}</td>
                       <td className="px-6 py-4">
-                        <span className="px-3 py-1 bg-primary/20 text-primary text-xs rounded-full font-medium border border-primary/30">
-                          {reg.program}
+                        <span className="whitespace-nowrap px-3 py-1 bg-primary/20 text-primary text-xs rounded-full font-medium border border-primary/30">
+                          {getProgramLabel(reg.program || '')}
                         </span>
                       </td>
                       <td className="px-6 py-4 font-semibold text-green-400">
@@ -1182,6 +1331,78 @@ export default function AdminPage() {
             </div>
 
             <div className="mt-8 rounded-2xl border border-white/10 bg-black/40 p-6">
+              <div className="grid gap-6 lg:grid-cols-[1.5fr_1fr] mb-8">
+                <div>
+                  <h2 className="text-xl font-bold">Admin Wallet</h2>
+                  <p className="text-foreground/60 text-sm">Deposit funds into the admin wallet and use that balance to recharge user wallets.</p>
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  {Object.entries(adminWalletBalances).map(([currency, amount]) => (
+                    <div key={currency} className="rounded-2xl border border-white/10 bg-[#02060d] p-4 text-center">
+                      <p className="text-[10px] uppercase tracking-[0.24em] text-foreground/60 mb-2">{currency}</p>
+                      <p className="text-lg font-bold text-white">{formatAmount(amount, currency)}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <form onSubmit={handleAdminWalletDeposit} className="grid grid-cols-1 xl:grid-cols-6 gap-3 items-end mb-6">
+                <div className="xl:col-span-2">
+                  <Label className="text-xs uppercase text-foreground/60">Deposit Amount</Label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={adminWalletAmount}
+                    onChange={(e) => setAdminWalletAmount(e.target.value)}
+                    placeholder="Amount"
+                    className="mt-2 w-full rounded-xl border border-white/10 bg-[#070b11] px-4 py-3 text-sm text-white"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs uppercase text-foreground/60">Currency</Label>
+                  <select
+                    value={adminWalletCurrency}
+                    onChange={(e) => setAdminWalletCurrency(e.target.value)}
+                    className="mt-2 w-full rounded-xl border border-white/10 bg-[#070b11] px-4 py-3 text-sm text-white"
+                  >
+                    {ADMIN_WALLET_CURRENCIES.map((currency) => (
+                      <option key={currency} value={currency}>{currency}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="xl:col-span-2">
+                  <Label className="text-xs uppercase text-foreground/60">Note</Label>
+                  <input
+                    type="text"
+                    value={adminWalletNote}
+                    onChange={(e) => setAdminWalletNote(e.target.value)}
+                    placeholder="Note (optional)"
+                    className="mt-2 w-full rounded-xl border border-white/10 bg-[#070b11] px-4 py-3 text-sm text-white"
+                  />
+                </div>
+                <Button type="submit" className="bg-primary xl:col-span-1" disabled={adminWalletLoading}>
+                  {adminWalletLoading ? 'Depositing…' : 'Deposit'}
+                </Button>
+              </form>
+
+              {adminWalletLedger.length > 0 && (
+                <div className="rounded-2xl border border-white/10 bg-[#02060d] p-4 mb-6">
+                  <p className="text-xs uppercase tracking-[0.24em] text-foreground/60 mb-4">Recent Admin Wallet Activity</p>
+                  <div className="space-y-3 text-sm text-foreground/70">
+                    {adminWalletLedger.slice(0, 4).map((entry) => (
+                      <div key={entry.id} className="rounded-2xl border border-white/10 bg-[#08111c] p-3">
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="text-white font-semibold">{entry.type === 'deposit' ? 'Deposit' : 'Transfer'}</p>
+                          <span className="text-foreground/50 text-xs">{new Date(entry.date).toLocaleDateString()}</span>
+                        </div>
+                        <p className="text-foreground/60 text-sm mt-1">{formatAmount(entry.amount, entry.currency)} · {entry.note}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
                 <div>
                   <h2 className="text-xl font-bold">Manual Wallet Topup</h2>
@@ -1224,7 +1445,7 @@ export default function AdminPage() {
                     onChange={(e) => setRechargeCurrency(e.target.value)}
                     className="mt-2 w-full rounded-xl border border-white/10 bg-[#070b11] px-4 py-3 text-sm text-white"
                   >
-                    {CRYPTO_CURRENCIES.map((currency) => (
+                    {ADMIN_WALLET_CURRENCIES.map((currency) => (
                       <option key={currency} value={currency}>{currency}</option>
                     ))}
                   </select>
@@ -1239,7 +1460,9 @@ export default function AdminPage() {
                     className="mt-2 w-full rounded-xl border border-white/10 bg-[#070b11] px-4 py-3 text-sm text-white"
                   />
                 </div>
-                <Button type="button" onClick={handleRechargeUser} className="bg-primary lg:col-span-1">Credit Wallet</Button>
+                <Button type="button" onClick={handleRechargeUser} className="bg-primary lg:col-span-1" disabled={walletTransferLoading}>
+                  {walletTransferLoading ? 'Transferring…' : 'Credit Wallet'}
+                </Button>
               </div>
             </div>
           </div>
@@ -1264,6 +1487,77 @@ export default function AdminPage() {
                 <p className="font-semibold">Created user password:</p>
                 <p className="font-mono mt-1">{createdUserPassword}</p>
               </div>
+            )}
+
+            {selectedEditUserId && (
+              <form onSubmit={handleSaveUserDetails} className="mb-6 rounded-2xl border border-white/10 bg-black/40 p-5">
+                <div className="flex flex-col gap-4">
+                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.18em] text-foreground/60 font-bold mb-1">Manage User</p>
+                      <p className="text-white font-semibold">{registrations.find((user) => user.id === selectedEditUserId)?.name || 'Selected user'}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={closeEditUser}
+                      className="text-foreground/50 text-sm hover:text-white"
+                    >
+                      Close
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <Input
+                      placeholder="Name"
+                      value={editUserName}
+                      onChange={(e) => setEditUserName(e.target.value)}
+                    />
+                    <Input
+                      placeholder="Email"
+                      value={editUserEmail}
+                      onChange={(e) => setEditUserEmail(e.target.value)}
+                    />
+                    <Input
+                      placeholder="Phone"
+                      value={editUserPhone}
+                      onChange={(e) => setEditUserPhone(e.target.value)}
+                    />
+                    <Input
+                      placeholder="Program"
+                      value={editUserProgram}
+                      onChange={(e) => setEditUserProgram(e.target.value)}
+                    />
+                    <select
+                      value={editUserStatus}
+                      onChange={(e) => setEditUserStatus(e.target.value)}
+                      className="w-full rounded-xl border border-white/10 bg-[#070b11] px-4 py-3 text-sm text-white"
+                    >
+                      <option value="pending">Pending</option>
+                      <option value="approved">Approved</option>
+                      <option value="rejected">Rejected</option>
+                    </select>
+                    <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-[#070b11] px-4 py-3">
+                      <input
+                        type="checkbox"
+                        checked={editIdCardIssued}
+                        onChange={(e) => setEditIdCardIssued(e.target.checked)}
+                        className="h-4 w-4 rounded border-white/20 bg-slate-900 text-primary"
+                      />
+                      <span className="text-sm text-foreground/70">ID Card Issued</span>
+                    </div>
+                    <Input
+                      placeholder="ID Card Issued At"
+                      value={editIdCardIssuedAt}
+                      onChange={(e) => setEditIdCardIssuedAt(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="flex flex-wrap gap-3">
+                    <Button type="submit" className="bg-primary" disabled={editUserLoading}>{editUserLoading ? 'Saving...' : 'Save Changes'}</Button>
+                    <Button type="button" onClick={closeEditUser} className="bg-white/5">Cancel</Button>
+                  </div>
+                </div>
+              </form>
             )}
 
             {passwordResetUserId && (
@@ -1374,6 +1668,13 @@ export default function AdminPage() {
                           className="px-3 py-1 rounded-lg bg-violet-600/20 hover:bg-violet-600/30 text-violet-300 text-xs font-semibold"
                         >
                           Reset Password
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => openEditUser(u.id)}
+                          className="px-3 py-1 rounded-lg bg-primary/20 hover:bg-primary/30 text-primary text-xs font-semibold"
+                        >
+                          Manage User
                         </button>
                         <button
                           type="button"
